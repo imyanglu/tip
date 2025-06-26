@@ -1,5 +1,13 @@
 use chrono::{prelude::*, Duration};
 use serde::{Deserialize, Serialize};
+#[derive(Debug, Deserialize, Clone, Serialize)]
+pub struct WorkInfo {
+    worked_money: f32,
+    worked_time: i64,
+    work_end_seconds: i64,
+    next_vacation_date: Option<VacationDate>,
+    next_vacation_duration: i64,
+}
 
 #[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct VacationDate {
@@ -18,7 +26,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn get_time_work_ends(&self) -> (i64, i64, i64) {
+    pub fn get_time_work_ends(&self) -> i64 {
         let work_end_time = NaiveTime::parse_from_str(&self.end_work_time, "%H:%M").unwrap();
         let today = Local::now().date_naive();
         let now = Local::now();
@@ -26,10 +34,10 @@ impl Config {
         let local_dt = Local.from_local_datetime(&work_end_date).unwrap();
         let diff = local_dt - now;
         if diff > Duration::zero() {
-            let seconds = diff.num_seconds();
-            return (seconds / 3600, (seconds % 3600) / 60, seconds % 60);
+            diff.num_seconds()
+        } else {
+            -1
         }
-        return (-1, -1, -1);
     }
     pub fn get_worked_seconds_day(&self) -> i64 {
         let work_start_time = NaiveTime::parse_from_str(&self.start_work_time, "%H:%M").unwrap();
@@ -93,7 +101,7 @@ impl Config {
         let seconds = worked_seconds % 60;
         (hours, minutes, seconds)
     }
-    pub fn get_next_vacation(&self) {
+    pub fn get_next_vacation(&self) -> Option<(i64, VacationDate)> {
         let today = Local::now().naive_local().date();
         let closest_vacation = self
             .vacation
@@ -108,18 +116,32 @@ impl Config {
             })
             .min_by_key(|(_, duration)| *duration);
         if closest_vacation.is_none() {
-            println!("没有假期了 今年已经！");
+            return None;
         } else {
             let next_vacation_res = closest_vacation.unwrap();
             let next_vacation = next_vacation_res.0;
             let duration = next_vacation_res.1;
-
-            println!(
-                "距离最近的假期还有{}秒,假期是{}",
-                duration.num_seconds(),
-                &next_vacation.date
-            );
+            return Some((duration.num_seconds(), next_vacation.clone()));
         }
     }
-    pub fn get_all_info(&self) {}
+    pub fn get_worked_info(&self) -> WorkInfo {
+        let next_vacation_res = self.get_next_vacation();
+        if next_vacation_res.is_none() {
+            return WorkInfo {
+                worked_money: self.get_earned_day(),
+                worked_time: self.get_worked_seconds_day(),
+                work_end_seconds: self.get_time_work_ends(),
+                next_vacation_date: None,
+                next_vacation_duration: -1,
+            };
+        }
+        let next_vacation = next_vacation_res.unwrap();
+        WorkInfo {
+            worked_money: self.get_earned_day(),
+            worked_time: self.get_worked_seconds_day(),
+            work_end_seconds: self.get_time_work_ends(),
+            next_vacation_date: Some(next_vacation.1),
+            next_vacation_duration: next_vacation.0,
+        }
+    }
 }

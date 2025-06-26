@@ -23,13 +23,13 @@ fn get_earned_day(state: tauri::State<AppState>) -> f32 {
 }
 
 #[derive(Clone, Serialize)]
-struct payload {
+struct Payload {
     message: String,
 }
 fn start_periodic_push(window: WebviewWindow) {
     std::thread::spawn(move || loop {
         let message = format!("{}", Local::now());
-        let _ = window.emit("infos", payload { message });
+        let _ = window.emit("infos", Payload { message });
         std::thread::sleep(Duration::from_secs(1));
     });
 }
