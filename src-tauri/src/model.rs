@@ -1,9 +1,7 @@
 use chrono::{prelude::*, Duration};
-use serde::Deserialize;
-use std::sync::Arc;
+use serde::{Deserialize, Serialize};
 
-
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize, Clone, Serialize)]
 pub struct VacationDate {
     date: String,
     name: Vec<String>,
@@ -97,7 +95,7 @@ impl Config {
     }
     pub fn get_next_vacation(&self) {
         let today = Local::now().naive_local().date();
-        let closestVacation = self
+        let closest_vacation = self
             .vacation
             .iter()
             .filter_map(|item| {
@@ -109,18 +107,19 @@ impl Config {
                 }
             })
             .min_by_key(|(_, duration)| *duration);
-        if closestVacation.is_none() {
+        if closest_vacation.is_none() {
             println!("没有假期了 今年已经！");
         } else {
-            let nextVacation_res = closestVacation.unwrap();
-            let nextVacation = nextVacation_res.0;
-            let duration = nextVacation_res.1;
+            let next_vacation_res = closest_vacation.unwrap();
+            let next_vacation = next_vacation_res.0;
+            let duration = next_vacation_res.1;
 
             println!(
                 "距离最近的假期还有{}秒,假期是{}",
                 duration.num_seconds(),
-                &nextVacation.date
+                &next_vacation.date
             );
         }
     }
+    pub fn get_all_info(&self) {}
 }
