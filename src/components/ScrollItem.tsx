@@ -31,7 +31,7 @@ export default function ({ number }: NumberScrollerProps) {
   }, [number]);
 
   return (
-    <div className="w-[20px] rounded-[4px] border-[1px] text-center h-[30px]  relative overflow-hidden">
+    <div className="w-[10px] rounded-[4px] text-center h-[30px]  relative overflow-hidden">
       <div
         ref={domRef}
         className="absolute right-0 text-center top-0 left-0 transition-transform"

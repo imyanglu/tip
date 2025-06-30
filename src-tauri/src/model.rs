@@ -102,12 +102,13 @@ impl Config {
         (hours, minutes, seconds)
     }
     pub fn get_next_vacation(&self) -> Option<(i64, VacationDate)> {
-        let today = Local::now().naive_local().date();
+        let today = Local::now().naive_local();
+
         let closest_vacation = self
             .vacation
             .iter()
             .filter_map(|item| {
-                let i = Self::parse_date(&item.date);
+                let i = Self::parse_date(&item.date).and_hms_opt(0, 0, 0).unwrap();
                 if i > today {
                     Some((item, i - today))
                 } else {
@@ -121,6 +122,7 @@ impl Config {
             let next_vacation_res = closest_vacation.unwrap();
             let next_vacation = next_vacation_res.0;
             let duration = next_vacation_res.1;
+
             return Some((duration.num_seconds(), next_vacation.clone()));
         }
     }

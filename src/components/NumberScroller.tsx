@@ -5,10 +5,10 @@ type NumberScrollerProps = {
   number: string;
   before?: string;
   after?: string;
+  fixed?: number;
 };
 
 const NumberScroller = ({ number, before, after }: NumberScrollerProps) => {
-  console.log(number);
   const numArr = useMemo(() => {
     return number.split("").map((num) => num);
   }, [number]);

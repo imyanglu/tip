@@ -13,13 +13,13 @@
   "app": {
     "windows": [
       {
-        "title": "worker-timer",
+        "title": "白熊工具箱",
         "width": 700,
-        "height": 300,
+        "height": 500,
         "fullscreen": false,
-        "resizable": false,
-        "decorations": false,
-        "visible": false,
+  
+   
+        "center": true,
         "devtools": true    
       }
     ],
