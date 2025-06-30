@@ -12,17 +12,6 @@ pub struct AppState {
     pub config: Arc<model::Config>,
 }
 
-fn load_config(path: &str) -> Result<model::Config, Box<dyn std::error::Error>> {
-    let fs_res = fs::read_to_string(path)?;
-    let config: model::Config = serde_json::from_str(&fs_res)?;
-    Ok(config)
-}
-
-#[tauri::command]
-fn get_earned_day(state: tauri::State<AppState>) -> f32 {
-    state.config.get_earned_day()
-}
-
 #[tauri::command]
 fn get_system_info() -> info::SysInfo {
     info::get_sys_info()

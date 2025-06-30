@@ -54,6 +54,10 @@ function App() {
         &nbsp; 总交换空间:{formatBytes(systemInfo.memInfo.swapTotal)}
         &nbsp; 空闲交换空间:{formatBytes(systemInfo.memInfo.swapFree)}
       </p>
+      <p className="mt-[12px]">
+        临时目录大小:{formatBytes(systemInfo.tempDirSize / 1024)}
+        <button className="ml-[12px]">清除</button>
+      </p>
     </main>
   );
 }

@@ -8,6 +8,7 @@ export interface SysInfo {
   diskTotal: number;
   diskFree: number;
   memInfo: MemInfo;
+  tempDirSize: number;
 }
 
 export interface MemInfo {
