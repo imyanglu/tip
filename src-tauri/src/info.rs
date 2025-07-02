@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::fs;
 use std::io;
 
-use sys_info::{self, DiskInfo, Error, MemInfo};
+use sys_info::{self};
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")] //
 pub struct SysInfo {

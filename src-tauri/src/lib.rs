@@ -1,13 +1,13 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use std::sync::Arc;
-use std::time::Duration;
+
 use std::{fs, thread};
 
-use chrono::Local;
 use serde::Serialize;
 use tauri::{Emitter, EventTarget, LogicalPosition, Manager, WebviewWindow, Window};
 pub mod info;
 pub mod model;
+pub mod win;
 pub struct AppState {
     pub config: Arc<model::Config>,
 }
@@ -24,6 +24,7 @@ struct Payload {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    win::test();
     let temp_dir = std::env::temp_dir();
     println!("Scanning temp dir: {:?}", temp_dir);
     tauri::Builder::default()
