@@ -22,7 +22,10 @@ fn get_process_memory_usage(pid: u32) -> Option<PROCESS_MEMORY_COUNTERS> {
         Some(pmc)
     }
 }
-
+#[test]
+fn test() {
+    get_poc().unwrap();
+}
 fn get_poc() -> Result<()> {
     unsafe {
         // 获取所有进程快照
@@ -49,8 +52,25 @@ fn get_poc() -> Result<()> {
                         .map(|&x| x as u16)
                         .collect::<Vec<u16>>(),
                 );
-
-                println!("PID: {:<6} Name: {}", entry.th32ProcessID, exe_name);
+                let pid = entry.th32ProcessID;
+                let pmc = get_process_memory_usage(pid);
+                if let Some(mem_info) = pmc {
+                    println!("进程 PID={} 的内存使用情况：", pid);
+                    println!(
+                        "工作集大小 (WorkingSetSize): {} bytes",
+                        mem_info.WorkingSetSize
+                    );
+                    println!(
+                        "峰值工作集大小 (PeakWorkingSetSize): {} bytes",
+                        mem_info.PeakWorkingSetSize
+                    );
+                    println!(
+                        "页面文件使用量 (PagefileUsage): {} bytes",
+                        mem_info.PagefileUsage
+                    );
+                } else {
+                    println!("无法获取进程内存信息，可能权限不足或进程不存在");
+                }
 
                 // 获取下一个进程
                 if !Process32Next(snapshot, &mut entry).is_ok() {
