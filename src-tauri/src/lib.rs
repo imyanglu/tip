@@ -17,6 +17,15 @@ fn get_system_info() -> info::SysInfo {
     info::get_sys_info()
 }
 
+#[tauri::command]
+fn get_process_info() -> Result<Vec<win::ProcessInfo>, String> {
+    let res = win::get_poc();
+    if let Err(e) = res {
+        return Err(e.to_string());
+    } else {
+        return Ok(res.unwrap());
+    }
+}
 #[derive(Clone, Serialize)]
 struct Payload {
     message: String,
@@ -24,7 +33,6 @@ struct Payload {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    win::test();
     let temp_dir = std::env::temp_dir();
     println!("Scanning temp dir: {:?}", temp_dir);
     tauri::Builder::default()
@@ -36,7 +44,7 @@ pub fn run() {
         // .manage(AppState {
         //     config: config.clone(),
         // })
-        .invoke_handler(tauri::generate_handler![get_system_info])
+        .invoke_handler(tauri::generate_handler![get_system_info, get_process_info])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

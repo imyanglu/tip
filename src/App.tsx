@@ -16,6 +16,7 @@ function formatBytes(kb: number) {
 }
 function App() {
   const [systemInfo, setSystemInfo] = useState<SysInfo | null>(null);
+  const [] = useState([]);
   const initSystemInfo = async () => {
     // 调用get_system_info函数，获取系统信息
     // 打印系统信息
@@ -32,7 +33,7 @@ function App() {
   if (!systemInfo) return null;
   return (
     <main className="container text-[13px]">
-      <p>名称:{systemInfo.hostname}</p>
+      {/* <p>名称:{systemInfo.hostname}</p>
       <p>
         类型:{systemInfo.osType}&nbsp;版本:{systemInfo.osRelease}
       </p>
@@ -57,7 +58,7 @@ function App() {
       <p className="mt-[12px]">
         临时目录大小:{formatBytes(systemInfo.tempDirSize / 1024)}
         <button className="ml-[12px]">清除</button>
-      </p>
+      </p> */}
     </main>
   );
 }

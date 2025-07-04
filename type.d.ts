@@ -20,3 +20,10 @@ export interface MemInfo {
   swapTotal: number;
   swapFree: number;
 }
+
+export type Process = {
+  name: string;
+  pid: number;
+  path: string;
+  memoryKb: number;
+};
