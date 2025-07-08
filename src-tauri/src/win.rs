@@ -50,48 +50,61 @@ pub struct ProcessInfo {
     memory_kb: usize,
     pid: u32,
 }
-pub fn get_poc() -> Result<Vec<ProcessInfo>, Box<dyn std::error::Error>> {
+pub fn get_poc() -> Option<Vec<ProcessInfo>> {
     let mut process_list: Vec<ProcessInfo> = vec![];
     unsafe {
-        // 获取所有进程快照
-        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)?;
-        if snapshot == INVALID_HANDLE_VALUE {
-            panic!("Failed to get snapshot");
-        }
-        // 初始化结构体
-        let mut entry = PROCESSENTRY32 {
-            dwSize: std::mem::size_of::<PROCESSENTRY32>() as u32,
-            ..Default::default()
-        };
+        let mut pids = [0u32; 1024];
+        let size = (pids.len() * std::mem::size_of::<u32>()) as u32;
+        let mut bytes_returned = 0;
 
-        // 获取第一个进程
-        if Process32First(snapshot, &mut entry).is_ok() {
-            loop {
-                // 将 UTF-16 转换为 Rust 字符串
-                let exe_name = String::from_utf16_lossy(
-                    &entry
-                        .szExeFile
-                        .iter()
-                        .map(|&x| x as u16)
-                        .take_while(|x| *x != 0)
-                        .collect::<Vec<u16>>(),
-                );
-                let pid = entry.th32ProcessID;
-                let pmc = get_process_memory_usage(pid);
-                if let Some((path, memory_kb)) = pmc {
-                    process_list.push(ProcessInfo {
-                        name: exe_name,
-                        path,
-                        memory_kb,
-                        pid,
-                    });
-                }
-                if !Process32Next(snapshot, &mut entry).is_ok() {
-                    break;
-                }
+        if !K32EnumProcesses(pids.as_mut_ptr(), size, &mut bytes_returned).as_bool() {
+            return None;
+        }
+        let mem_size = std::mem::size_of::<u32>();
+        let count = bytes_returned as usize / mem_size;
+        for &pid in &pids[..count] {
+            if pid == 0 {
+                continue;
             }
-        }
+            // 获取进程句柄
+            let h_process_res =
+                OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, false, pid);
+            if h_process_res.is_err() {
+                continue;
+            }
+            let h_process = h_process_res.unwrap();
+            // 获取映像路径
+            let mut buffer = [0u16; 260];
+            let len = K32GetProcessImageFileNameW(h_process, &mut buffer) as usize;
 
-        Ok(process_list)
+            let image_path = if len > 0 {
+                wide_to_string(&buffer)
+            } else {
+                "<未知>".to_string()
+            };
+            // 获取内存信息
+            let mut mem_counters = PROCESS_MEMORY_COUNTERS::default();
+            let mem_ok = K32GetProcessMemoryInfo(
+                h_process,
+                &mut mem_counters,
+                std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32,
+            )
+            .as_bool();
+
+            let memory_kb = if mem_ok {
+                mem_counters.WorkingSetSize / 1024
+            } else {
+                0
+            };
+            process_list.push(ProcessInfo {
+                path: image_path.clone(),
+                name: image_path,
+                pid: pid,
+                memory_kb,
+            });
+
+            CloseHandle(h_process);
+        }
+        return Some(process_list);
     }
 }

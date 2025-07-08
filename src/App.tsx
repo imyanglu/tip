@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Children, useEffect, useMemo, useRef, useState } from "react";
 
 import "./App.css";
-import { SysInfo } from "../type";
+import { Process, SysInfo } from "../type";
 
 import { invoke } from "@tauri-apps/api/core";
+import { Collapse } from "antd";
 
 function formatBytes(kb: number) {
   if (kb >= 1024 * 1024) {
@@ -16,49 +17,67 @@ function formatBytes(kb: number) {
 }
 function App() {
   const [systemInfo, setSystemInfo] = useState<SysInfo | null>(null);
-  const [] = useState([]);
+  const [processMap, setProcessMap] = useState<Map<string, Process[]>>(
+    new Map()
+  );
   const initSystemInfo = async () => {
     // 调用get_system_info函数，获取系统信息
     // 打印系统信息
     const res = await invoke("get_system_info");
-    console.log(res);
+
     // 设置系统信息
     setSystemInfo(res as SysInfo);
+  };
+  const formatName = (name: string) => {
+    const arr = name.split("//");
+    return arr[arr.length - 1];
+  };
+  const combineProcess = (arr: Process[]) => {
+    const map = new Map<string, Process[]>();
+    arr.forEach((item) => {
+      if (map.has(item.name)) {
+        map.get(item.name)?.push(item);
+      } else {
+        map.set(item.name, [item]);
+      }
+    });
+    setProcessMap(map);
+  };
+  const process = useMemo(() => {
+    return Array.from(processMap.values()).map((item) => {
+      return {
+        key: item[0].name,
+        label: formatName(item[0].name),
+        children: (
+          <div>
+            {item.map((i) => (
+              <div key={i.pid}>
+                {i.pid}&nbsp;&nbsp;&nbsp;
+                {i.name}
+                {i.memoryKb}
+              </div>
+            ))}
+          </div>
+        ),
+      };
+    });
+  }, [processMap]);
+  const initProcessInfo = async () => {
+    const res: Process[] = await invoke("get_process_info");
+    combineProcess(res);
   };
   // useEffect函数，在组件加载时执行
   useEffect(() => {
     initSystemInfo();
+    setInterval(() => {
+      initProcessInfo();
+    }, 1000);
   }, []);
 
   if (!systemInfo) return null;
   return (
     <main className="container text-[13px]">
-      {/* <p>名称:{systemInfo.hostname}</p>
-      <p>
-        类型:{systemInfo.osType}&nbsp;版本:{systemInfo.osRelease}
-      </p>
-      <p>
-        CPU:{systemInfo.cpuNum}&nbsp;转数:{systemInfo.cpuSpeed}MHZ&nbsp;
-      </p>
-      <p>
-        当前运行进程数:
-        {systemInfo.procTotal}
-      </p>
-      <p>
-        磁盘容量:{formatBytes(systemInfo.diskTotal)}&nbsp;空闲:
-        {formatBytes(systemInfo.diskFree)}
-      </p>
-      <p>
-        内存:{formatBytes(systemInfo.memInfo.total)} &nbsp;空闲:
-        {formatBytes(systemInfo.memInfo.free)}
-        &nbsp; 缓存:{formatBytes(systemInfo.memInfo.cached)}
-        &nbsp; 总交换空间:{formatBytes(systemInfo.memInfo.swapTotal)}
-        &nbsp; 空闲交换空间:{formatBytes(systemInfo.memInfo.swapFree)}
-      </p>
-      <p className="mt-[12px]">
-        临时目录大小:{formatBytes(systemInfo.tempDirSize / 1024)}
-        <button className="ml-[12px]">清除</button>
-      </p> */}
+      <Collapse accordion items={process} />
     </main>
   );
 }

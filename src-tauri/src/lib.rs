@@ -20,8 +20,8 @@ fn get_system_info() -> info::SysInfo {
 #[tauri::command]
 fn get_process_info() -> Result<Vec<win::ProcessInfo>, String> {
     let res = win::get_poc();
-    if let Err(e) = res {
-        return Err(e.to_string());
+    if res.is_none() {
+        return Err(String::from("读取错误"));
     } else {
         return Ok(res.unwrap());
     }
@@ -34,7 +34,6 @@ struct Payload {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let temp_dir = std::env::temp_dir();
-    println!("Scanning temp dir: {:?}", temp_dir);
     tauri::Builder::default()
         .setup(|app| {
             // 获取主窗口
