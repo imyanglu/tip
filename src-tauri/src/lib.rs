@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use std::{fs, thread};
 
+use serde::de::value::Error;
 use serde::Serialize;
 use tauri::{Emitter, EventTarget, LogicalPosition, Manager, WebviewWindow, Window};
 pub mod info;
@@ -34,6 +35,23 @@ fn kill_process(pid: u32) -> bool {
 struct Payload {
     message: String,
 }
+#[tauri::command]
+fn create_window(label: String) {
+    println!("创建窗口{label}");
+    let is_create = tauri::Builder::default().setup(|app| {
+        let handle = app.handle().clone();
+        std::thread::spawn(move || {
+            let webview_window = tauri::WebviewWindowBuilder::new(
+                &handle,
+                &label,
+                tauri::WebviewUrl::App("index.html".into()),
+            )
+            .build()
+            .unwrap();
+        });
+        Ok(())
+    });
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -50,7 +68,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_system_info,
             get_process_info,
-            kill_process
+            kill_process,
+            create_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

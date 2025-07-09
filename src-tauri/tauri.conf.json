@@ -17,15 +17,22 @@
         "width": 1080,
         "height": 500,
         "fullscreen": false,
-  
-   
         "center": true,
-        "devtools": true    
+        "devtools": true 
       }
     ],
     "security": {
+      "capabilities": [{
+        "identifier": "my-capability",
+        "description": "My application capability used for all windows",
+        "windows": ["*"],
+        "permissions": [
+            "core:webview:allow-create-webview-window" 
+        ]
+    }],
       "csp": null
     }
+
   },
 
   "bundle": {
