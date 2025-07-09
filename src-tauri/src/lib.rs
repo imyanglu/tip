@@ -26,6 +26,10 @@ fn get_process_info() -> Result<Vec<win::ProcessInfo>, String> {
         return Ok(res.unwrap());
     }
 }
+#[tauri::command]
+fn kill_process(pid: u32) -> bool {
+    win::kill_process(pid)
+}
 #[derive(Clone, Serialize)]
 struct Payload {
     message: String,
@@ -43,7 +47,11 @@ pub fn run() {
         // .manage(AppState {
         //     config: config.clone(),
         // })
-        .invoke_handler(tauri::generate_handler![get_system_info, get_process_info])
+        .invoke_handler(tauri::generate_handler![
+            get_system_info,
+            get_process_info,
+            kill_process
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

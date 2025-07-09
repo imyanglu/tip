@@ -48,6 +48,7 @@ pub struct ProcessInfo {
     name: String,
     path: String,
     memory_kb: usize,
+    private_memory_kb: usize,
     pid: u32,
 }
 pub fn get_poc() -> Option<Vec<ProcessInfo>> {
@@ -61,6 +62,7 @@ pub fn get_poc() -> Option<Vec<ProcessInfo>> {
             return None;
         }
         let mem_size = std::mem::size_of::<u32>();
+
         let count = bytes_returned as usize / mem_size;
         for &pid in &pids[..count] {
             if pid == 0 {
@@ -73,16 +75,19 @@ pub fn get_poc() -> Option<Vec<ProcessInfo>> {
                 continue;
             }
             let h_process = h_process_res.unwrap();
-            // 获取映像路径
+            // 获取私有内存
+            let mut mem_ex: PROCESS_MEMORY_COUNTERS_EX = std::mem::zeroed();
+            mem_ex.cb = size_of::<PROCESS_MEMORY_COUNTERS_EX>() as u32;
+            K32GetProcessMemoryInfo(h_process, &mut mem_ex as *mut _ as *mut _, mem_ex.cb);
+            let private_usage_kb = mem_ex.PrivateUsage / 1024;
+            // 获取映像路径及内存大小
             let mut buffer = [0u16; 260];
             let len = K32GetProcessImageFileNameW(h_process, &mut buffer) as usize;
-
             let image_path = if len > 0 {
                 wide_to_string(&buffer)
             } else {
                 "<未知>".to_string()
             };
-            // 获取内存信息
             let mut mem_counters = PROCESS_MEMORY_COUNTERS::default();
             let mem_ok = K32GetProcessMemoryInfo(
                 h_process,
@@ -90,15 +95,21 @@ pub fn get_poc() -> Option<Vec<ProcessInfo>> {
                 std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32,
             )
             .as_bool();
-
             let memory_kb = if mem_ok {
                 mem_counters.WorkingSetSize / 1024
             } else {
                 0
             };
+            let mut counters = PROCESS_MEMORY_COUNTERS_EX::default();
+            GetProcessMemoryInfo(
+                h_process,
+                &mut counters as *mut _ as *mut _,
+                std::mem::size_of::<PROCESS_MEMORY_COUNTERS_EX>() as u32,
+            );
             process_list.push(ProcessInfo {
                 path: image_path.clone(),
                 name: image_path,
+                private_memory_kb: counters.PrivateUsage / 1024,
                 pid: pid,
                 memory_kb,
             });
@@ -106,5 +117,18 @@ pub fn get_poc() -> Option<Vec<ProcessInfo>> {
             CloseHandle(h_process);
         }
         return Some(process_list);
+    }
+}
+
+pub fn kill_process(pid: u32) -> bool {
+    unsafe {
+        let handle_res = OpenProcess(PROCESS_TERMINATE, false, pid);
+        if handle_res.is_err() {
+            return false;
+        }
+        let h_process = handle_res.unwrap();
+        TerminateProcess(h_process, 0);
+        CloseHandle(h_process);
+        return true;
     }
 }

@@ -26,4 +26,5 @@ export type Process = {
   pid: number;
   path: string;
   memoryKb: number;
+  privateMemoryKb: number;
 };
