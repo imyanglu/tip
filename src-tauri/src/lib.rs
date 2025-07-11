@@ -1,16 +1,17 @@
+use std::sync::atomic::AtomicBool;
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 use std::sync::Arc;
 
 use std::{fs, thread};
 
-use serde::de::value::Error;
 use serde::Serialize;
-use tauri::{Emitter, EventTarget, LogicalPosition, Manager, WebviewWindow, Window};
+use tauri::{Emitter, Manager, State, WindowEvent};
 pub mod info;
 pub mod model;
 pub mod win;
 pub struct AppState {
-    pub config: Arc<model::Config>,
+    // pub config: Arc<model::Config>,
+    pub watch_process: Arc<AtomicBool>,
 }
 
 #[tauri::command]
@@ -35,41 +36,67 @@ fn kill_process(pid: u32) -> bool {
 struct Payload {
     message: String,
 }
+
 #[tauri::command]
-fn create_window(label: String) {
-    println!("创建窗口{label}");
-    let is_create = tauri::Builder::default().setup(|app| {
-        let handle = app.handle().clone();
-        std::thread::spawn(move || {
-            let webview_window = tauri::WebviewWindowBuilder::new(
-                &handle,
-                &label,
-                tauri::WebviewUrl::App("index.html".into()),
-            )
-            .build()
-            .unwrap();
-        });
-        Ok(())
+fn watch_process(window: tauri::Window, state: tauri::State<AppState>) {
+    state
+        .watch_process
+        .store(true, std::sync::atomic::Ordering::Relaxed);
+    let mut process_info = get_process_info().unwrap();
+    let running = state.watch_process.clone();
+    let window = window.clone();
+    thread::spawn(move || {
+        while running.load(std::sync::atomic::Ordering::Relaxed) {
+            let current_process_info = get_process_info().unwrap();
+
+            if process_info != current_process_info {
+                process_info = current_process_info;
+                window.emit("process_change", process_info.clone()).unwrap();
+                println!("发射");
+            }
+
+            thread::sleep(std::time::Duration::from_secs(1));
+        }
     });
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let temp_dir = std::env::temp_dir();
     tauri::Builder::default()
         .setup(|app| {
             // 获取主窗口
             Ok(())
         })
+        .on_window_event(|window, event| {
+            match event {
+                WindowEvent::CloseRequested { api, .. } => {
+                    // 阻止默认行为（直接关闭）
+                    println!("阻止默认行为{}", window.label());
+                    let win_label = window.label();
+                    if win_label == "processLabel" {
+                        let state = window.state::<AppState>();
+                        let running = state.watch_process.clone();
+                        running.store(false, std::sync::atomic::Ordering::Relaxed);
+
+                        // 然后允许关闭窗口（也可以延迟几秒关闭）
+                        window.close().unwrap(); // 或者 api.prevent_close(); 保留不关
+                    }
+                }
+                WindowEvent::Destroyed => {
+                    println!("窗口已销毁，可以做最终清理");
+                }
+                _ => {}
+            }
+        })
         .plugin(tauri_plugin_opener::init())
-        // .manage(AppState {
-        //     config: config.clone(),
-        // })
+        .manage(AppState {
+            watch_process: Arc::new(AtomicBool::new(false)),
+        })
         .invoke_handler(tauri::generate_handler![
             get_system_info,
             get_process_info,
             kill_process,
-            create_window
+            watch_process
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

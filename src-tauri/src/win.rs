@@ -42,7 +42,7 @@ fn get_process_memory_usage(pid: u32) -> Option<(String, usize)> {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ProcessInfo {
     name: String,

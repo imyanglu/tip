@@ -94,7 +94,7 @@ function App() {
   // }, []);
 
   const openNewWindow = () => {
-    const webview = new WebviewWindow("theUniqueLabel", {
+    const webview = new WebviewWindow("processLabel", {
       url: "/process",
       title: "进程管理",
       width: 800,
