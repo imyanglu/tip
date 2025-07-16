@@ -2,10 +2,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useState } from "react";
 import { Process } from "../../../type";
-import { formatBytes, formatName } from "../../utils/help";
-import { Button, Collapse } from "antd";
+import { directoryClass, formatBytes, formatName } from "../../utils/help";
+import { Button, Collapse, Input } from "antd";
 
 export default function () {
+  const [config, setConfig] = useState({ duration: 1 });
   const getProcessInfo = async () => {
     await invoke("watch_process");
   };
@@ -37,7 +38,14 @@ export default function () {
           sort: formatName(item[0].name),
           label: (
             <div className="flex items-center gap-x-2">
-              <div className="w-[200px]"> {formatName(item[0].name)}</div>
+              <div className="w-[300px] break-all line-clamp-1 flex items-center gap-x-[12px]">
+                {formatName(item[0].name)}
+                {directoryClass(item[0].name) === "system" ? (
+                  <div className="w-[6px] aspect-square rounded-full bg-[#1CD66C]"></div>
+                ) : (
+                  <></>
+                )}
+              </div>
               <div>
                 虚拟:
                 {formatBytes(item.reduce((s, i) => s + i.privateMemoryKb, 0))}
@@ -55,7 +63,9 @@ export default function () {
                   <div className="w-[150px]">
                     物理内存:{formatBytes(i.memoryKb)}
                   </div>
-                  <div className="flex-1 line-clamp-1">{i.name}</div>
+                  <div className="flex-1 line-clamp-1" title={i.name}>
+                    {i.name}
+                  </div>
                   <Button
                     size="small"
                     onClick={() => {
@@ -88,6 +98,7 @@ export default function () {
   }, []);
   return (
     <div>
+      <Input prefix="扫描间隔"  />
       <Collapse items={process} />
     </div>
   );

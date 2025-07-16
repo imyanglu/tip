@@ -52,7 +52,6 @@ fn watch_process(window: tauri::Window, state: tauri::State<AppState>) {
             if process_info != current_process_info {
                 process_info = current_process_info;
                 window.emit("process_change", process_info.clone()).unwrap();
-                println!("发射");
             }
 
             thread::sleep(std::time::Duration::from_secs(1));

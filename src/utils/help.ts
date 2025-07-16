@@ -12,3 +12,13 @@ export function formatBytes(kb: number) {
     return kb + " KB";
   }
 }
+
+export const isSystemFile = (name: string) => {
+  const arr = name.split("\\");
+  return arr[0] === "System Volume Information";
+};
+
+export const directoryClass = (path: string) => {
+  if (path.includes("Windows\\System32")) return "system";
+  return "normal";
+};
